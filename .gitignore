@@ -1,0 +1,28 @@
+# Icarus Verilog output (sim/run_sim.sh)
+build/
+*.vcd
+
+# Vivado project made by vivado/create_project.tcl
+vivado/*/
+
+# Vivado clutter if a project is made somewhere else in the repo
+.Xil/
+*.jou
+*.log
+*.str
+*.pb
+*.wdb
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.gen/
+xsim.dir/
+webtalk*
+usage_statistics_webtalk.*
+vivado_pid*.zip
+
+# OS junk
+.DS_Store
+Thumbs.db
