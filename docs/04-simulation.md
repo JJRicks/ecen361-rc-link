@@ -2,17 +2,17 @@
 
 **Goal:** prove the decoder works before touching hardware. No hardware needed; do this any time.
 
-There are three testbenches. Both print `pass:` or `FAIL:` for each check, then `ALL TESTS PASSED` at the end.
+There are three testbenches. Each prints `pass:` or `FAIL:` for every check, then `ALL TESTS PASSED` at the end. `run_sim.sh` runs the decoder's testbench twice, at 20 MHz (flight) and 12 MHz (bench), so you'll see four runs.
 
 | Testbench | Tests | Checks | Sim time |
 |---|---|---|---|
-| `sim/IBUS_RX_tb.sv` | `IBUS_RX` + `UART_RX` | 16 | ~85 ms |
-| `sim/IBUS_TEST_TOP_tb.sv` | the whole bench-test top, including the team's `PWM.sv` | 5 | ~85 ms |
-| `examples/RC_ARMING_EXAMPLE_tb.sv` | the arming and throttle-failsafe example from [guide 6](06-integration.md) | 10 | ~290 ms |
+| `sim/IBUS_RX_tb.sv` | `IBUS_RX` + `IBUS_UART_RX`, at 20 and 12 MHz | 16 per run | ~85 ms |
+| `sim/IBUS_TEST_TOP_tb.sv` | the whole bench-test top, including the team's `PWM.sv` | 5 | ~140 ms |
+| `examples/RC_ARMING_EXAMPLE_tb.sv` | the 20 MHz flight example from [guide 6](06-integration.md), including the team's `PWM` and SCS0009 modules | 17 | ~570 ms |
 
 ---
 
-## Option A: Icarus Verilog (Mac or Linux, about 2 seconds)
+## Option A: Icarus Verilog (Mac or Linux, about 25 seconds)
 
 1. Install Icarus Verilog, version 12 or newer:
    - Mac: `brew install icarus-verilog`
@@ -24,10 +24,10 @@ There are three testbenches. Both print `pass:` or `FAIL:` for each check, then 
 3. Expected output (last lines):
    ```
    === IBUS_TEST_TOP_tb ===
-   pass: no link (failsafe): OUT pulse = 1500.0 us, led = x0
-   pass: CH1=1250: OUT pulse = 1250.0 us, led = 11
+   pass: no link (failsafe): OUT pulse = 1500.0 us every 20.00 ms, led = x0
+   pass: CH1=1250: OUT pulse = 1250.0 us every 20.00 ms, led = 11
    pass: led[1] on when CH5 > 1500
-   pass: CH1=1800: OUT pulse = 1800.0 us, led = 01
+   pass: CH1=1800: OUT pulse = 1800.0 us every 20.00 ms, led = 01
    pass: led[1] off when CH5 < 1500
    ALL TESTS PASSED
    ...
@@ -38,6 +38,8 @@ There are three testbenches. Both print `pass:` or `FAIL:` for each check, then 
    All testbenches passed.
    ```
    The script exits with code 0 only if every check passes. In the `no link` line above, `led = x0` is expected: before any frame arrives, CH5 has no value yet, so LED1 shows `x` in simulation. On real hardware it powers up as 0.
+
+   The compiler also prints `sorry: constant selects...` lines and a width warning. Those come from the team's files in `team-snapshot/` and don't affect the results.
 
 **Windows:** run the same script from **Git Bash** after installing Icarus for Windows. Or just use Option B.
 
@@ -58,7 +60,7 @@ There are three testbenches. Both print `pass:` or `FAIL:` for each check, then 
    1. Close the simulation.
    2. Right-click **IBUS_TEST_TOP_tb** → **Set as Top**.
    3. Run it again.
-8. The arming example's testbench isn't in the bench-test project. To run it in Vivado, add `examples/RC_ARMING_EXAMPLE.sv` and `examples/RC_ARMING_EXAMPLE_tb.sv` as simulation sources, then set the testbench as top.
+8. The arming example's testbench isn't in the bench-test project. To run it in Vivado, add `examples/RC_ARMING_EXAMPLE.sv`, `examples/RC_ARMING_EXAMPLE_tb.sv`, `team-snapshot/UART_TX.sv` and `team-snapshot/UART_OUT_SCS0009.sv` as simulation sources, then set the testbench as top.
 
 **Waveforms:** Vivado opens a waveform window automatically. Useful signals to drag in from the Scope panel:
 - under `DUT`: `RX`, `idx`, `sum`, `FrameValid`, `Failsafe`, `Ch`
@@ -90,17 +92,25 @@ There are three testbenches. Both print `pass:` or `FAIL:` for each check, then 
 
 | Check | What it proves |
 |---|---|
-| no link → 1500.0 µs, LED0 off | Servo centers and the link LED is off with no radio |
+| no link → 1500.0 µs every 20 ms, LED0 off | Servo centers and the link LED is off with no radio; the 12 MHz period setting is right |
 | CH1 = 1250 → 1250.0 µs, LED0 on | Channel value → PWM width scaling is exact |
 | LED1 on when CH5 > 1500 | Switch LED works |
 | CH1 = 1800 → 1800.0 µs | |
 | LED1 off when CH5 < 1500 | |
+
+`RC_ARMING_EXAMPLE_tb`: the list is in [guide 6, Step 3](06-integration.md#step-3-the-safety-rules-non-negotiable).
 
 **Do the testbenches actually catch bugs?** Yes, checked by planting bugs in scratch copies. Each planted bug made checks fail:
 - swapped channel bytes
 - skipped checksum check
 - disabled gap resync
 - wrong PWM scale factor
+- the wrong `PWM` period at 12 MHz (33 ms instead of 20 ms)
+- a leftover × 12 throttle scale, or a 600 µs idle pulse, at 20 MHz
+- `CLK_HZ` not matching the clock
+- no throttle-low interlock
+- surfaces not centered in failsafe
+- servo positions off by one, on the wrong channel, or sent only when frames arrive
 
 ## If you change the HDL
 

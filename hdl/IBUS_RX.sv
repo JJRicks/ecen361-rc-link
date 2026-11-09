@@ -11,7 +11,7 @@
 // Tool Versions:
 // Description: Decodes FlySky i-BUS (FS-iA6B "SERVO" port) into channel values.
 //
-// Dependencies: UART_RX
+// Dependencies: IBUS_UART_RX
 //
 // Revision:
 // Revision 0.01 - File Created
@@ -26,7 +26,7 @@
 
 
 module IBUS_RX #(
-    parameter int CLK_HZ = 12_000_000,
+    parameter int CLK_HZ = 20_000_000,
     parameter int TIMEOUT_MS = 100
     )(
         //clk
@@ -90,5 +90,5 @@ module IBUS_RX #(
             idx <= 0;                   // line has been idle: next byte starts a new frame
     end
 
-    UART_RX #(.CLK_HZ(CLK_HZ), .BAUD(115_200)) U1 (clk, RX, rData, rValid);
+    IBUS_UART_RX #(.CLK_HZ(CLK_HZ), .BAUD(115_200)) U1 (clk, RX, rData, rValid);
 endmodule

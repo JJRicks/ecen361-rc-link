@@ -53,7 +53,7 @@ ExpressLRS (ELRS) is the current hobby standard. Over the FlySky it offers:
 - **Signal level:** the iA6B's signal has been measured at about 3 V, so it can go straight to a Cmod pin set to LVCMOS33. [Guide 3](03-wiring.md) has you confirm this with a meter first.
 - **Failsafe:** the FlySky's factory default is to hold the last position when the link drops. That's why [guide 2](02-radio-setup.md) sets failsafe on the transmitter, and the FPGA also has its own timeout.
 - **Antennas:** the build puts carbon rods in the fuselage and wing, and carbon blocks 2.4 GHz. [Guide 7](07-preflight.md) covers antenna placement.
-- **Power:** the Cmod's VU pin takes 3.3–5.5 V. Plugging in USB pushes 5 V back onto VU, so never connect USB and the ESC's 5 V at the same time.
+- **Power:** the Cmod's VU pin takes 3.3–5.5 V. Plugging in USB pushes 5 V back onto VU, so never connect USB and the plane's 5 V supply at the same time.
 
 ## Sources
 

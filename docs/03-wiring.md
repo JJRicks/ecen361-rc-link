@@ -97,22 +97,41 @@ SERVO S ──[ 1 kΩ ]──┬──── Cmod G19
 
 ## Step 4: In-plane wiring (later; for reference)
 
-In the plane, there's no USB. The ESC's built-in 5 V regulator (its "BEC") powers the receiver and the Cmod:
+In the plane there's no USB, so the receiver and the Cmod need 5 V from the flight battery. **Don't assume the ESC provides it.**
+
+**First, check the ESC.** The team's documentation lists an "RCtimer Multicopter 40A esc". RCTimer's closest listing, the [Multicopter SimonK ESC 40A (OPTO)](https://rctimer.com/multicopter-simonk-speed-controller-esc-40a-opto-p0035.html), shows **BEC: N/A**, meaning no 5 V output. Confirm on the actual unit:
+
+1. **Propeller off.** Nothing plugged into the ESC's thin signal lead.
+2. Connect the flight battery.
+3. Set the meter to **DC volts**. Black probe on the lead's black or brown wire, red probe on its red wire (if it has one).
+4. Note the reading and unplug the battery.
+
+| Reading | Meaning | What to do |
+|---|---|---|
+| **about 0 V, or no red wire** | No 5 V output | Use a separate 5 V regulator (a "UBEC"), wired as below. That's a purchase, so check with Justin. |
+| **4.8–5.5 V** | The ESC has a BEC | It can feed the 5 V rail in place of the UBEC, if its current rating covers everything on the rail. |
+| **above 5.5 V** | Too high for VU | Don't connect it to the Cmod. Use a UBEC. |
+
+**Wiring with a UBEC:**
 
 ```
- Flight battery ── ESC ──┬── motor (3 wires)
-                         │
-                         └── ESC servo lead:  S ──── Cmod PWM output pin (from the FPGA, not from the receiver)
-                                              + ──┬─ receiver + (any port, e.g. B/VCC)
-                                                  └─ Cmod VU (DIP 24)
-                                              − ──┬─ receiver −
-                                                  └─ Cmod GND (DIP 25)
+ Flight battery ──┬── ESC ──── motor (3 wires)
+                  │
+                  └── 5 V UBEC ──┬─ + ──┬─ receiver + (any port, e.g. B/VCC)
+                                 │      └─ Cmod VU (DIP 24)
+                                 └─ − ──┬─ receiver −
+                                        ├─ Cmod GND (DIP 25)
+                                        └─ ESC signal lead − (black/brown)
 
- Receiver SERVO port:  S ─── Cmod G19      (+ and − are already on the shared 5 V rail above)
+ ESC signal lead S ── Cmod PWM output pin (from the FPGA, not from the receiver)
+ Receiver SERVO S ─── Cmod G19            (+ and − are already on the rail above)
 ```
 
 - **The ESC takes its throttle signal from the FPGA,** not from receiver CH3, because the FPGA is the flight controller.
-- **Check the BEC voltage before connecting the Cmod.** It must be within VU's 3.3–5.5 V range; most ESC BECs are 5 V.
+- **All the grounds must connect.** The ESC can't read the FPGA's signal without a shared ground, even when its lead carries no power.
+- **One supply per rail.** If the ESC's lead does have 5 V and you use a UBEC anyway, leave the ESC's red wire unconnected.
+- **Choosing a UBEC:** its input range must cover the flight battery, and its output must be 5 V. A 5 V, 3 A unit leaves plenty of margin for the receiver and Cmod. If the servos will share it, add their stall current from the datasheet.
+- **Measure the 5 V rail before connecting the Cmod.** It must be within VU's 3.3–5.5 V range.
 - **Unplug the flight battery before plugging in USB.** USB also drives VU, and two supplies fighting on one rail is how boards die.
 - **The SCS0009 servos and their URT-2 board** have their own power and wiring; that isn't covered here.
 

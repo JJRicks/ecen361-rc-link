@@ -13,14 +13,17 @@ This repo holds everything for getting stick and switch positions from the handh
 
 The receiver sends every channel about every 7 ms as a 32-byte serial frame. `IBUS_RX.sv` checks each frame and turns it into `Ch[1]`…`Ch[14]`. The values are in microseconds, roughly 1000–2000 µs. It also raises a `Failsafe` flag when the radio link drops.
 
+**Two clocks, on purpose:** the flight design runs at 20 MHz, from a clock wizard fed by the Cmod's 12 MHz clock, to match the team's current `PWM` and SCS0009 modules. The bench test stays on the plain 12 MHz clock, so it needs no clock wizard.
+
 ## Status
 
 | Piece | State |
 |---|---|
 | Hardware | FS-i6X + FS-iA6B bought 2026-11-04 |
-| `IBUS_RX` decoder | ✅ passes all 16 checks in simulation (Icarus Verilog 13) |
+| `IBUS_RX` decoder | ✅ passes all 16 checks in simulation at both 12 and 20 MHz (Icarus Verilog 13) |
 | Bench-test top, through the team's `PWM.sv` | ✅ passes all 5 end-to-end checks in simulation |
-| Arming / throttle-failsafe example | ✅ passes all 10 checks in simulation |
+| 20 MHz flight example: arming, ESC pulse, servo packets | ✅ passes all 17 checks in simulation |
+| Power in the plane | ⬜ find out whether the ESC has a 5 V output ([guide 3, Step 4](docs/03-wiring.md#step-4-in-plane-wiring-later-for-reference)) |
 | Vivado synthesis and implementation | ⬜ not done yet |
 | Real radio and real FPGA | ⬜ not tested yet |
 | `vivado/create_project.tcl` | ⬜ written but not run yet |
@@ -57,20 +60,20 @@ Reference material:
 
 ```
 hdl/
-  UART_RX.sv            8N1 serial receiver, single clock, 2-flop synchronizer
+  IBUS_UART_RX.sv       8N1 serial receiver for i-BUS, single clock, 2-flop synchronizer
   IBUS_RX.sv            i-BUS frame decoder → Ch[1..14], FrameValid, Failsafe
-  IBUS_TEST_TOP.sv      bench test: CH1 → servo, LEDs show link / CH5
+  IBUS_TEST_TOP.sv      bench test at 12 MHz: CH1 → servo, LEDs show link / CH5
 sim/
   IBUS_RX_tb.sv         16 self-checks on the decoder
   IBUS_TEST_TOP_tb.sv   5 end-to-end checks: i-BUS in → servo pulse + LEDs out
-  run_sim.sh            runs all three testbenches with Icarus Verilog
+  run_sim.sh            runs every testbench with Icarus Verilog
 examples/
-  RC_ARMING_EXAMPLE.sv  how to use IBUS_RX in the flight top: arm switch, throttle failsafe
-  RC_ARMING_EXAMPLE_tb.sv  10 self-checks on it
+  RC_ARMING_EXAMPLE.sv  how to use IBUS_RX in the 20 MHz flight top: arm switch, throttle failsafe, servos
+  RC_ARMING_EXAMPLE_tb.sv  17 self-checks on it
 constraints/
   IBUS_TEST.xdc         Cmod A7 pins for the bench test
 team-snapshot/
-  PWM.sv                copy of the team's PWM module (may be stale, see its README)
+  PWM.sv, UART_TX.sv, UART_OUT_SCS0009.sv   copies of team modules (may be stale, see the README there)
 vivado/
   create_project.tcl    one-command Vivado project (not yet run)
 docs/                   the guides above
@@ -80,7 +83,7 @@ docs/                   the guides above
 
 | Signal | FPGA pin | Where on the board |
 |---|---|---|
-| 12 MHz clock | L17 | on board |
+| 12 MHz clock | L17 | on board; the flight design multiplies it to 20 MHz |
 | i-BUS in, from the iA6B SERVO port "S" | **G19** | Pmod JA pin 2 |
 | Servo PWM out (bench test) | **G17** | Pmod JA pin 1 |
 | LED0: link OK | A17 | green LED |

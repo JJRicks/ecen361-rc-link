@@ -39,7 +39,7 @@ If the script errors, use Option 2. It does the same thing by hand.
 4. **Default Part:** in the Search box type `xc7a35tcpg236-1` and select it. Next → Finish.
 5. **Design sources:**
    1. **Flow Navigator → Add Sources → Add or create design sources** → Next → **Add Files**.
-   2. Select from the repo: `hdl/UART_RX.sv`, `hdl/IBUS_RX.sv`, `hdl/IBUS_TEST_TOP.sv`, `team-snapshot/PWM.sv`.
+   2. Select from the repo: `hdl/IBUS_UART_RX.sv`, `hdl/IBUS_RX.sv`, `hdl/IBUS_TEST_TOP.sv`, `team-snapshot/PWM.sv`.
    3. **Untick "Copy sources into project"** so Vivado uses the repo files directly and your edits show up in git. Finish.
 6. **Constraints:** **Add Sources → Add or create constraints** → Add Files → `constraints/IBUS_TEST.xdc`. Untick copy. Finish.
 7. **Simulation sources:** **Add Sources → Add or create simulation sources** → Add Files → `sim/IBUS_RX_tb.sv` and `sim/IBUS_TEST_TOP_tb.sv`. Untick copy. Finish.
