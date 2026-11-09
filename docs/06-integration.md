@@ -45,6 +45,16 @@ IBUS_RX #(.CLK_HZ(20_000_000)) RC (clk_20MHz, IBUS, Ch, FrameValid, Failsafe);
 - **The team's `PWM` module counts 20 clocks per µs** on `clk_20MHz`, with a 20 ms period (`Pulse_Period` = 400,000).
 - **`TIMEOUT_MS`** (default 100) sets how long without a good frame before `Failsafe` goes high. Leave it at 100 unless there's a reason; one missed frame is 7 ms.
 
+**If the flight top uses a block design:** Vivado needs a block-design module to be Verilog or VHDL at its top level, so its wrapper has to be a `.v` file. `Ch` is a 2D port, which plain Verilog can't declare. Keep `Ch` inside a `.sv` module and have the wrapper instantiate that, the way `Test_Wrapper.v` calls `BUTTONS`. `RC_ARMING_EXAMPLE` from Step 3 only has plain ports, so it works as is:
+
+```verilog
+module Flight_Wrapper(input clk_20MHz, input IBUS, output ESC_PWM, output SERVO_TX);
+    RC_ARMING_EXAMPLE U1 (clk_20MHz, IBUS, ESC_PWM, SERVO_TX);
+endmodule
+```
+
+If the `.v` file itself needs a channel, connect a flat `wire [167:0]` to the port. `Ch[n]` is then bits `[12*n-1 : 12*(n-1)]`, so throttle `Ch[3]` is `[35:24]`.
+
 ## Step 3: The safety rules (non-negotiable)
 
 1. **Throttle failsafe is 1000 µs (motor off).** The bench test centers its servo at 1500 µs in failsafe, which is right for a surface. **On an ESC, 1500 µs is half throttle.** For the team's `PWM` module, 1000 µs is `Durration = 19'd20_000`.
