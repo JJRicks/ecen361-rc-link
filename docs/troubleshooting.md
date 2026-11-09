@@ -78,6 +78,9 @@ A top-level port has no line in the XDC. Usually the XDC isn't added to the proj
 ### `[Place 30-574] Poor placement for routing between an IO pin and BUFG`
 The clock isn't on the clock pin. `clk_12MHz` must be **L17**.
 
+### Errors about `BAUD` or `CLK_HZ` on `UART_RX`
+An old `IBUS_RX.sv` is picking up the team's `UART_RX`, which has no parameters. Use the current `hdl/IBUS_RX.sv` and add `hdl/IBUS_UART_RX.sv` to the project.
+
 ### Simulation stops at 1000 ns with no pass/fail output
 Type `run all` in the Tcl Console. To make it permanent: Settings → Simulation → Simulation tab → `xsim.simulate.runtime` = `all`.
 
@@ -99,10 +102,14 @@ Bitstream Settings → tick **-bin_file**, then Generate Bitstream again.
 
 ## ESC
 
+### Receiver and Cmod stay dark when the flight battery goes in
+The ESC may have no 5 V output. Do the check in [guide 3, Step 4](03-wiring.md#step-4-in-plane-wiring-later-for-reference).
+
 ### ESC beeps continuously, or never finishes its startup tones
 It isn't seeing a valid "throttle low" signal.
 - **Signal:** check the ESC signal wire goes to the FPGA's PWM output pin, and the grounds are shared.
-- **Pulse width:** check the flight design sends **1000 µs** when disarmed.
+- **Pulse width:** check the flight design sends **1000 µs** when disarmed. At 20 MHz, `PWM` needs 20 clocks per µs; a leftover × 12 gives a 600 µs pulse.
+- **3.3 V signal:** the FPGA's output is 3.3 V. If the ESC is the opto-isolated type and doesn't respond, look at the signal at the ESC; it may need a level shifter.
 - **Throttle range:** some ESCs need throttle-range calibration first. See [guide 6, Step 5](06-integration.md#step-5-first-power-up-with-the-esc-propeller-off). **Propeller off.**
 
 ### Motor doesn't stop when the transmitter is turned off

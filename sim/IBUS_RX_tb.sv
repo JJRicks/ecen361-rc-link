@@ -12,16 +12,17 @@
 // Description: Self-checking testbench for IBUS_RX. Prints pass/FAIL per check
 //              and a summary line at the end.
 //
-// Dependencies: IBUS_RX, UART_RX
+// Dependencies: IBUS_RX, IBUS_UART_RX
 //
 // Revision:
 // Revision 0.01 - File Created
 // Additional Comments:
 //   Run time ~85ms of sim time (Vivado: set xsim run time to "all").
+//   CLK_HZ defaults to the flight clock; sim/run_sim.sh also runs it at 12MHz.
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module IBUS_RX_tb();
+module IBUS_RX_tb #(parameter int CLK_HZ = 20_000_000) ();
 
     logic clk = 0;
     logic RX = 1;
@@ -29,9 +30,10 @@ module IBUS_RX_tb();
     logic FrameValid, Failsafe;
 
     // short timeout so the failsafe test doesn't take forever
-    IBUS_RX #(.CLK_HZ(12_000_000), .TIMEOUT_MS(20)) DUT (clk, RX, Ch, FrameValid, Failsafe);
+    IBUS_RX #(.CLK_HZ(CLK_HZ), .TIMEOUT_MS(20)) DUT (clk, RX, Ch, FrameValid, Failsafe);
 
-    always #41.667 clk = ~clk;          // 12 MHz
+    localparam real HALF_NS = 1.0e9 / CLK_HZ / 2.0;
+    always #(HALF_NS) clk = ~clk;
 
     localparam real NOMINAL_BIT_NS = 1.0e9 / 115200;
     real bit_ns = NOMINAL_BIT_NS;

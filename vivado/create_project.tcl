@@ -17,7 +17,7 @@ create_project ibus_test [file join $repo vivado ibus_test] -part xc7a35tcpg236-
 
 # design sources
 add_files -norecurse [list \
-    [file join $repo hdl UART_RX.sv] \
+    [file join $repo hdl IBUS_UART_RX.sv] \
     [file join $repo hdl IBUS_RX.sv] \
     [file join $repo hdl IBUS_TEST_TOP.sv] \
     [file join $repo team-snapshot PWM.sv] ]

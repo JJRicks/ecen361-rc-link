@@ -43,11 +43,11 @@ That's exactly what you'd see on a logic analyzer with a UART decoder at 115200 
 
 ---
 
-## Part 2: The decoder (`hdl/IBUS_RX.sv` + `hdl/UART_RX.sv`)
+## Part 2: The decoder (`hdl/IBUS_RX.sv` + `hdl/IBUS_UART_RX.sv`)
 
 ```
               ┌─────────── IBUS_RX ────────────────────────────────────────────┐
-  RX pin ──►  │  UART_RX ──rData/rValid──►  byte index (idx 0..31)              │
+  RX pin ──►  │  IBUS_UART_RX ──rData/rValid──►  byte index (idx 0..31)         │
               │  (2-flop sync,               running sum of bytes 0..29         │
               │   mid-bit sample,            shadow[1..14] ◄─ channel bytes     │──► Ch[1..14]
               │   stop-bit check)            on byte 31: checksum OK?           │──► FrameValid
@@ -57,8 +57,8 @@ That's exactly what you'd see on a logic analyzer with a UART decoder at 115200 
               └─────────────────────────────────────────────────────────────────┘
 ```
 
-### `UART_RX`
-- **Single clock.** Everything runs on `clk`, with no derived clocks, so Vivado can time it properly. Avoid the `@(negedge bauder[7])` style in the older `UART_TX.sv`.
+### `IBUS_UART_RX`
+- **Single clock.** Everything runs on `clk`, with no derived clocks, so Vivado can time it properly.
 - **2-flop synchronizer.** The RX pin is asynchronous to the FPGA clock, so it passes through two flip-flops (`rx_meta` → `rx_s`) before anything looks at it. This guards against metastability.
 - **Start-bit detection with glitch rejection.**
   - A low level starts a byte, and the timer then waits half a bit to land in the middle of the start bit.
@@ -67,6 +67,23 @@ That's exactly what you'd see on a logic analyzer with a UART decoder at 115200 
   - The bit time is `round(CLK_HZ / BAUD)` clocks: **104** at 12 MHz (0.16% error) and 174 at 20 MHz (−0.22%).
 - **Stop-bit check.** A byte is only delivered (`rValid` pulse) if the stop bit is high. That rejects some framing errors.
 - **Baud tolerance:** the testbench checks ±2%. 8N1 with mid-bit sampling tolerates roughly ±4–5% in theory.
+
+### Why not the team's `UART_RX`?
+
+The team has its own `UART_RX` for the 20 MHz design, with a handshake and majority-vote sampling. `IBUS_RX` uses a separate receiver because i-BUS sends 32 bytes in a row:
+- The team's module counts 175 clocks per bit, while an i-BUS bit at 20 MHz is about 173.6 clocks.
+- It waits for the end of the stop bit before looking for the next byte, so that difference adds up from byte to byte when there's no gap.
+
+A simulated i-BUS frame fed into it, with `rReady` held high, gave:
+
+| Idle gap between bytes | Bytes correct |
+|---|---|
+| 0 bits | 5 of 32 |
+| 0.05 bit | 7 of 32 |
+| 0.10 bit | 31 of 32 |
+| 0.15 bit or more | 32 of 32 |
+
+We haven't measured the gap the iA6B really leaves, so the decoder uses `IBUS_UART_RX`, which handles no gap at all. The names differ, so both can be in the same project.
 
 ### `IBUS_RX`
 - **Byte index `idx`** counts 0–31 through the frame:
@@ -90,7 +107,7 @@ That's exactly what you'd see on a logic analyzer with a UART decoder at 115200 
 
 ```systemverilog
 module IBUS_RX #(
-    parameter int CLK_HZ = 12_000_000,    // must match clk
+    parameter int CLK_HZ = 20_000_000,    // must match clk
     parameter int TIMEOUT_MS = 100        // no good frame for this long → Failsafe
 )(
     input  clk,
@@ -112,7 +129,7 @@ module IBUS_RX #(
 > - **Frame:** 32 bytes every ~7 ms: header `0x20 0x40`, then 14 channels as 16-bit little-endian µs values (1000–2000), then a 16-bit checksum = 0xFFFF − sum of bytes 0–29.
 > - **Decoding:** the FPGA updates channel values only on frames with a valid checksum.
 > - **Link loss:** if no valid frame arrives for 100 ms, the FPGA declares failsafe. In failsafe it commands throttle to 1000 µs (motor off), disarms, and centers the control surfaces.
-> - **Power:** the receiver runs from the 5 V BEC rail (4.0–8.4 V allowed).
+> - **Power:** the receiver runs from the plane's 5 V rail (4.0–8.4 V allowed).
 
 ## Sources
 

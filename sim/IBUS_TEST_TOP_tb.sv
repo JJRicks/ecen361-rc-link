@@ -12,12 +12,12 @@
 // Description: End-to-end check of the bench-test top: i-BUS frames in,
 //              servo pulse width and LEDs out. Self-checking.
 //
-// Dependencies: IBUS_TEST_TOP, IBUS_RX, UART_RX, PWM (team-snapshot/PWM.sv)
+// Dependencies: IBUS_TEST_TOP, IBUS_RX, IBUS_UART_RX, PWM (team-snapshot/PWM.sv)
 //
 // Revision:
 // Revision 0.01 - File Created
 // Additional Comments:
-//   Run time ~90ms of sim time (Vivado: set xsim run time to "all").
+//   Run time ~140ms of sim time (Vivado: set xsim run time to "all").
 //////////////////////////////////////////////////////////////////////////////////
 
 
@@ -55,18 +55,23 @@ module IBUS_TEST_TOP_tb();
         send_byte(sum[7:0]); send_byte(sum[15:8]);
     endtask
 
-    // measure one OUT pulse and compare it (and led[0]) to what we expect
+    // measure one OUT pulse and its 20ms period, and compare them (and led[0]) to what we expect
     task automatic measure(input string what, input real expect_us, input bit expect_led0);
         realtime t0;
-        real width_us;
+        real width_us, period_ms;
+        logic [1:0] led_seen;
         @(posedge OUT); t0 = $realtime; @(negedge OUT);
         width_us = ($realtime - t0) / 1000.0;
-        if (width_us > expect_us - 0.2 && width_us < expect_us + 0.2 && led[0] === expect_led0)
-            $display("pass: %s: OUT pulse = %0.1f us, led = %b", what, width_us, led);
+        led_seen = led;
+        @(posedge OUT);
+        period_ms = ($realtime - t0) / 1.0e6;
+        if (width_us > expect_us - 0.2 && width_us < expect_us + 0.2 &&
+            period_ms > 19.9 && period_ms < 20.1 && led_seen[0] === expect_led0)
+            $display("pass: %s: OUT pulse = %0.1f us every %0.2f ms, led = %b", what, width_us, period_ms, led_seen);
         else begin
             errors++;
-            $display("FAIL: %s: OUT pulse = %0.1f us (want %0.1f), led = %b (want led[0]=%b)",
-                     what, width_us, expect_us, led, expect_led0);
+            $display("FAIL: %s: OUT pulse = %0.1f us (want %0.1f) every %0.2f ms (want 20), led = %b (want led[0]=%b)",
+                     what, width_us, expect_us, period_ms, led_seen, expect_led0);
         end
     endtask
 

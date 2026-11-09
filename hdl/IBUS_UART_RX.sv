@@ -5,11 +5,13 @@
 //
 // Create Date: 11/04/2026
 // Design Name:
-// Module Name: UART_RX
+// Module Name: IBUS_UART_RX
 // Project Name:
 // Target Devices: Cmod A7-35T
 // Tool Versions:
-// Description: 8N1 UART receiver. Runs entirely on clk (no derived clocks).
+// Description: 8N1 UART receiver for i-BUS. Runs entirely on clk (no derived
+//              clocks) and keeps up with bytes sent back to back. Named
+//              IBUS_UART_RX so it can sit next to the team's UART_RX.
 //
 // Dependencies:
 //
@@ -20,8 +22,8 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module UART_RX #(
-    parameter int CLK_HZ = 12_000_000,
+module IBUS_UART_RX #(
+    parameter int CLK_HZ = 20_000_000,
     parameter int BAUD = 115_200
     )(
         //clk
@@ -35,7 +37,7 @@ module UART_RX #(
         output logic rValid             // high for one clk when rData is new
     );
 
-    localparam int BIT_CLKS = (CLK_HZ + BAUD/2) / BAUD;    // clocks per bit (104 at 12MHz / 115200)
+    localparam int BIT_CLKS = (CLK_HZ + BAUD/2) / BAUD;    // clocks per bit (174 at 20MHz / 115200)
 
     logic rx_meta = 1, rx_s = 1;        // 2 flop synchronizer on the async input
     logic [$clog2(BIT_CLKS)-1:0] timer = 0;
